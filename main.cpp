@@ -6,9 +6,17 @@
   Test automatici dell'interfaccia pubblica della classe graph.
 */
 
+#include "custom_types.hpp"
 #include "graph.hpp"
 #include <cassert>
 #include <iostream>
+
+/**
+  Funtore di eguaglianza tra interi
+*/
+struct equal_int {
+  bool operator()(int a, int b) const { return a == b; }
+};
 
 /**
   @brief Test di aggiunta dei nodi
@@ -19,7 +27,7 @@
   caso di nodo duplicato.
 */
 void test_addNode() {
-  graph<int> g;
+  graph<int, equal_int> g;
   assert(g.numNodes() == 0);
 
   g.addNode(10);
@@ -50,7 +58,7 @@ void test_addNode() {
   caso di nodo non esistente.
 */
 void test_removeNode() {
-  graph<int> g;
+  graph<int, equal_int> g;
 
   g.addNode(10);
   g.addNode(20);
@@ -89,7 +97,7 @@ void test_removeNode() {
   aggiunta di archi tra nodi non esistenti.
 */
 void test_addEdge() {
-  graph<int> g;
+  graph<int, equal_int> g;
 
   g.addNode(10);
   g.addNode(20);
@@ -166,7 +174,7 @@ void test_addEdge() {
   rimozione di archi tra nodi non esistenti.
 */
 void test_removeEdge() {
-  graph<int> g;
+  graph<int, equal_int> g;
 
   g.addNode(10);
   g.addNode(20);
@@ -238,15 +246,13 @@ void test_removeEdge() {
 /**
   @brief Test completo nodi + archi
 
-  Verifica la coerenza dell'intera struttura sottoponendola a sequenze
-  alternate di aggiunte e rimozioni di nodi e archi. In particolare
-  controlla che la rimozione di un nodo elimini tutti e soli gli archi
-  a esso incidenti (in entrata e in uscita) e che gli archi rimanenti
-  restino associati alle coppie di nodi corrette nonostante il
-  riallineamento degli indici nella matrice di adiacenza.
+  Verifica che nodi e archi restino coerenti dopo sequenze alternate di
+  aggiunte e rimozioni. In particolare controlla che rimuovere un nodo
+  elimini tutti e soli i suoi archi (sia entranti che uscenti) e che gli
+  archi rimasti restino collegati alle coppie di nodi giuste.
 */
 void test_completo_nodi_archi() {
-  graph<int> g;
+  graph<int, equal_int> g;
 
   g.addNode(10);
   g.addNode(20);
@@ -332,9 +338,9 @@ void test_completo_nodi_archi() {
 */
 void test_copia_e_stampa() {
   // Grafo vuoto
-  graph<int> vuoto1;
-  graph<int> vuoto2(vuoto1); // copy constructor su grafo vuoto
-  graph<int> vuoto3;
+  graph<int, equal_int> vuoto1;
+  graph<int, equal_int> vuoto2(vuoto1); // copy constructor su grafo vuoto
+  graph<int, equal_int> vuoto3;
   vuoto3 = vuoto1; // assegnamento su grafo vuoto
   vuoto3 = vuoto3; // auto-assegnamento
 
@@ -346,7 +352,7 @@ void test_copia_e_stampa() {
   std::cout << vuoto1 << std::endl;
 
   // Grafo popolato
-  graph<int> g1;
+  graph<int, equal_int> g1;
   g1.addNode(10);
   g1.addNode(20);
   g1.addNode(30);
@@ -354,7 +360,7 @@ void test_copia_e_stampa() {
   g1.addEdge(20, 30);
 
   // copy constructor su grafo non vuoto
-  graph<int> g2(g1);
+  graph<int, equal_int> g2(g1);
   assert(g2.numNodes() == 3);
   assert(g2.numEdges() == 2);
   assert(g2.existsEdge(10, 20));
@@ -374,7 +380,7 @@ void test_copia_e_stampa() {
 
   // operatore di assegnamento su un grafo gia' popolato:
   // il vecchio contenuto deve essere sostituito (copy-and-swap)
-  graph<int> g3;
+  graph<int, equal_int> g3;
   g3.addNode(99);
   g3 = g1;
   assert(g3.numNodes() == 3);
@@ -396,6 +402,15 @@ void test_copia_e_stampa() {
   std::cout << g1 << std::endl;
   std::cout << "GRAFO G3" << std::endl;
   std::cout << g3 << std::endl;
+
+  // test swap
+  g1.swap(g3);
+  assert(g1.numNodes() == 2);
+  assert(g1.numEdges() == 1);
+  assert(!g1.existsNode(10));
+  assert(g3.numNodes() == 3);
+  assert(g3.numEdges() == 2);
+  assert(g3.existsNode(10));
 }
 
 /**
@@ -405,7 +420,7 @@ void test_copia_e_stampa() {
   dei nodi presenti nel grafo.
 */
 void test_const_iterator() {
-  graph<int> g;
+  graph<int, equal_int> g;
 
   assert(g.begin() == g.end());
 
@@ -415,7 +430,7 @@ void test_const_iterator() {
   g.addNode(40);
 
   unsigned int visitati = 0;
-  for (graph<int>::const_iterator i = g.begin(); i != g.end(); ++i) {
+  for (graph<int, equal_int>::const_iterator i = g.begin(); i != g.end(); ++i) {
     assert(g.existsNode(*i));
     ++visitati;
   }
@@ -423,47 +438,34 @@ void test_const_iterator() {
   assert(visitati == g.numNodes());
 
   // due iteratori indipendenti non interferiscono
-  graph<int>::const_iterator a = g.begin();
-  graph<int>::const_iterator b = a; // copy constructor dell'iteratore
+  graph<int, equal_int>::const_iterator a = g.begin();
+
+  // copy constructor dell'iteratore
+  graph<int, equal_int>::const_iterator b = a;
   ++a;
   assert(a != b);         // avanzare a non tocca b
   assert(b == g.begin()); // b e' ancora all'inizio
 
   // post-incremento: ritorna il valore precedente all'avanzamento
-  graph<int>::const_iterator c = g.begin();
-  graph<int>::const_iterator d = c++;
+  graph<int, equal_int>::const_iterator c = g.begin();
+  graph<int, equal_int>::const_iterator d = c++;
   assert(d == g.begin()); // d ha il valore pre-incremento
   assert(c != d);         // c e' avanzato
 }
 
-//--------------------------------------------------------------------
 /**
-  @brief Struct city che implementa una citta'.
+  @brief Test della classe graph sul tipo custom city
 
-  Struct city che implementa una citta' identificata dal nome. E'
-  possibile specificare come valore opzionale anche la popolazione.
-  L'uguaglianza tra due citta' e' definita sul solo nome. Si ipotizza
-  che gli archi siano collegamenti mono-direzionali da una citta'
-  all'altra.
+  Verifica l'interfaccia pubblica su un tipo la cui identita' dipende da
+  un solo campo (il nome), tramite il funtore equal_city. Due citta' con
+  lo stesso nome ma popolazione diversa sono lo stesso nodo per il grafo,
+  a dimostrare che l'identita' dipende dal funtore e non dall'intero
+  oggetto. Sono verificati l'aggiunta e l'unicita' dei nodi, l'aggiunta e
+  la direzionalita' degli archi, il lancio delle eccezioni node_not_found
+  ed edge_not_found e l'iterazione sui nodi.
 */
-struct city {
-  std::string name;
-  int population;
-
-  city() : name(""), population(0) {}
-
-  city(const std::string &n, int p) : name(n), population(p) {}
-
-  bool operator==(const city &other) const { return name == other.name; }
-};
-
-std::ostream &operator<<(std::ostream &os, const city &c) {
-  os << c.name;
-  return os;
-}
-
-void test_custom_type() {
-  graph<city> g;
+void test_city_type() {
+  graph<city, equal_city> g;
 
   city milano = city("Milano", 1400000);
   city roma = city("Roma", 2700000);
@@ -474,17 +476,17 @@ void test_custom_type() {
   g.addNode(napoli);
 
   // l'oggetto city e' diverso ma corrisponde ad un nodo gia' esistente secondo
-  // la logica della struct (test operator==)
+  // la logica del funtore equal_city
   try {
     g.addNode(city("Milano", 2000000));
     assert(false);
-  } catch (node_already_exists &e) {
+  } catch (const node_already_exists &e) {
   }
 
   try {
     g.removeNode(city("Venezia", 1000000));
     assert(false);
-  } catch (node_not_found &e) {
+  } catch (const node_not_found &e) {
   }
 
   assert(g.numNodes() == 3);
@@ -497,13 +499,13 @@ void test_custom_type() {
   try {
     g.existsEdge(city("Venezia", 1000000), milano);
     assert(false);
-  } catch (node_not_found &e) {
+  } catch (const node_not_found &e) {
   }
 
   try {
     g.removeEdge(milano, napoli);
     assert(false);
-  } catch (edge_not_found &e) {
+  } catch (const edge_not_found &e) {
   }
 
   assert(g.numEdges() == 4);
@@ -513,21 +515,115 @@ void test_custom_type() {
   assert(g.existsEdge(roma, milano));
   assert(!g.existsEdge(milano, napoli));
 
-  // l'oggetto city e' diverso ma corrisponde ad un nodo gia' esistente secondo
-  // la logica della struct (test operator==)
+  // l'oggetto city e' diverso in popolazione ma corrisponde ad un arco gia'
+  // esistente secondo la logica del funtore equal_city
   try {
     g.addEdge(city("Milano", 2000000), roma);
     assert(false);
-  } catch (edge_already_exists &e) {
+  } catch (const edge_already_exists &e) {
   }
 
   // test iteratore su tipo custom
   unsigned int visitati = 0;
-  for (graph<city>::const_iterator ct = g.begin(); ct != g.end(); ++ct) {
+  for (graph<city, equal_city>::const_iterator ct = g.begin(); ct != g.end(); ++ct) {
     assert(g.existsNode(*ct));
     ++visitati;
   }
 
+  assert(visitati == g.numNodes());
+
+  std::cout << g << std::endl;
+}
+
+/**
+  @brief Test della classe graph su tipo custom con uguaglianza divergente
+
+  Verifica il caso in cui l'uguaglianza propria del tipo file (operator==,
+  che confronta il path) e' diversa dal criterio di identita' usato dal
+  grafo (il funtore equal_file_by_content, che confronta il contenuto).
+  Il test mostra che il grafo usa il funtore e ignora operator==: due file
+  con path diversi ma stesso contenuto sono lo stesso nodo per il grafo pur
+  essendo diversi secondo operator==, mentre due file con lo stesso path ma
+  contenuto diverso sono nodi distinti pur essendo uguali secondo
+  operator==. Verifica inoltre l'unicita' dei nodi, la direzionalita' degli
+  archi, il lancio delle eccezioni node_not_found ed edge_not_found,
+  l'operatore -> dell'iteratore e l'iterazione sui nodi.
+*/
+void test_file_type() {
+  graph<file, equal_file_by_content> g;
+
+  file a = file("/home/a.txt", "qwe");
+  file b = file("/home/b.txt", "rty");
+  file c = file("/home/c.txt", "asd");
+
+  g.addNode(a);
+  g.addNode(b);
+  g.addNode(c);
+  assert(g.numNodes() == 3);
+
+  // copia con path diverso ma stesso contenuto di a
+  file a_copy = file("/backup/a.txt", "qwe");
+
+  // secondo operator== sono diversi: il path differisce
+  assert(!(a == a_copy));
+
+  // ma per il grafo, che usa equal_file_by_content, hanno lo stesso
+  // contenuto e sono quindi lo stesso nodo: l'aggiunta deve lanciare
+  // node_already_exists
+  try {
+    g.addNode(a_copy);
+    assert(false);
+  } catch (const node_already_exists &e) {
+  }
+  assert(g.numNodes() == 3);
+
+  // caso simmetrico: stesso path di a ma contenuto diverso.
+  // Per operator== e' uguale ad a, ma per il grafo e' un nodo nuovo
+  // perche' il contenuto differisce, quindi l'aggiunta riesce
+  file a_modified = file("/home/a.txt", "qwe modificato");
+  assert(a == a_modified); // uguali per operator== (stesso path)
+  g.addNode(a_modified);   // ma contenuto diverso: nodo nuovo per il grafo
+  assert(g.numNodes() == 4);
+
+  // rimozione di un file il cui contenuto non e' presente
+  try {
+    g.removeNode(file("/tmp/x.txt", "empty"));
+    assert(false);
+  } catch (const node_not_found &e) {
+  }
+
+  g.addEdge(a, b);
+  g.addEdge(b, c);
+  g.addEdge(c, a);
+  assert(g.numEdges() == 3);
+
+  assert(g.existsEdge(a, b));
+  assert(!g.existsEdge(b, a));
+
+  // interrogazione con un file di path diverso ma stesso contenuto di a:
+  // il grafo lo riconosce come lo stesso nodo, quindi l'arco verso b esiste
+  assert(g.existsEdge(a_copy, b));
+
+  try {
+    g.removeEdge(a, c);
+    assert(false);
+  } catch (const edge_not_found &e) {
+  }
+  assert(g.numEdges() == 3);
+
+  try {
+    g.existsEdge(file("/tmp/x.txt", "empty"), a);
+    assert(false);
+  } catch (const node_not_found &e) {
+  }
+
+  // iterazione sui nodi + test operator->
+  unsigned int visitati = 0;
+  for (graph<file, equal_file_by_content>::const_iterator f = g.begin(); f != g.end(); ++f) {
+    assert(g.existsNode(*f));
+    assert(!f->path.empty());
+    ++visitati;
+  }
   assert(visitati == g.numNodes());
 
   std::cout << g << std::endl;
@@ -557,8 +653,11 @@ int main() {
   test_const_iterator();
   std::cout << "[OK] Test const iterator" << std::endl;
 
-  test_custom_type();
+  test_city_type();
   std::cout << "[OK] Test custom type city" << std::endl;
+
+  test_file_type();
+  std::cout << "[OK] Test custom type file" << std::endl;
 
   std::cout << std::endl << "===== Tutti i test superati =====" << std::endl;
   return 0;

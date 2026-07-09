@@ -10,57 +10,17 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
+#include "edge_already_exists.hpp"
+#include "edge_not_found.hpp"
+#include "node_already_exists.hpp"
+#include "node_not_found.hpp"
+
 #include <algorithm> // std::swap
 #include <cstddef>   // std::ptrdiff_t
 #include <iostream>  // std::cout
 #include <iterator>  // std::forward_iterator_tag
 #include <new>
-#include <ostream>   // std::ostream
-#include <stdexcept> // std::logic_error
-#include <string>    // std::string
-
-/**
-  @brief Classe che rappresenta l'eccezione per un nodo gia' esistente
-
-  Eccezione custom lanciata quando si tenta di aggiungere al grafo
-  un nodo il cui identificativo e' gia' presente.
-*/
-class node_already_exists : public std::logic_error {
-public:
-  node_already_exists(const std::string &msg) : std::logic_error(msg) {}
-};
-
-/**
-  @brief Classe che rappresenta l'eccezione per un nodo inesistente
-
-  Eccezione custom lanciata quando si referenzia un nodo il cui
-  identificativo non e' presente nel grafo.
-*/
-class node_not_found : public std::logic_error {
-public:
-  node_not_found(const std::string &msg) : std::logic_error(msg) {}
-};
-
-/**
-  @brief Classe che rappresenta l'eccezione per un arco gia' esistente
-
-  Eccezione custom lanciata quando si tenta di aggiungere al grafo
-  un arco gia' presente.
-*/
-class edge_already_exists : public std::logic_error {
-public:
-  edge_already_exists(const std::string &msg) : std::logic_error(msg) {}
-};
-
-/**
-  @brief Classe che rappresenta l'eccezione per un arco inesistente
-
-  Eccezione custom lanciata quando si referenzia un arco non presente nel grafo.
-*/
-class edge_not_found : public std::logic_error {
-public:
-  edge_not_found(const std::string &msg) : std::logic_error(msg) {}
-};
+#include <ostream> // std::ostream
 
 /**
   @brief Classe che implementa un grafo orientato generico
@@ -69,7 +29,7 @@ public:
   da un generico tipo T. Il grafo e' rappresentato tramite una matrice
   di adiacenza di booleani.
 */
-template <typename T> class graph {
+template <typename T, typename E> class graph {
 public:
   /**
     Costruttore di default.
@@ -91,7 +51,8 @@ public:
     @post _size == other._size
     @post il contenuto di _ids e _adj e' una copia di quello di other
   */
-  graph(const graph &other) : _ids(nullptr), _adj(nullptr), _size(other._size) {
+  graph(const graph &other)
+      : _ids(nullptr), _adj(nullptr), _size(other._size), _equals(other._equals) {
     try {
       _ids = new T[_size];
       _adj = new bool[_size * _size];
@@ -99,12 +60,12 @@ public:
       for (unsigned int i = 0; i < _size; ++i) {
         _ids[i] = other._ids[i];
       }
+
       for (unsigned int i = 0; i < _size * _size; ++i) {
         _adj[i] = other._adj[i];
       }
     } catch (...) {
-      delete[] _ids;
-      delete[] _adj;
+      clear();
       throw;
     }
   }
@@ -133,12 +94,12 @@ public:
     @post la memoria allocata da _ids e _adj e' stata liberata
   */
   ~graph() {
-    delete[] _ids;
-    delete[] _adj;
+    clear();
+    _size = 0;
   }
 
   /**
-    Funzione scambia lo stato tra l'istanza corrente di
+    Funzione che scambia lo stato tra l'istanza corrente di
     graph e quella passata come parametro.
 
     @param other graph con cui scambiare lo stato
@@ -147,6 +108,7 @@ public:
     std::swap(_ids, other._ids);
     std::swap(_adj, other._adj);
     std::swap(_size, other._size);
+    std::swap(_equals, other._equals);
   }
 
   /**
@@ -168,6 +130,7 @@ public:
         ++count;
       }
     }
+
     return count;
   }
 
@@ -181,8 +144,8 @@ public:
   bool existsNode(const T &id) const { return indexOf(id) != -1; }
 
   /**
-    Ritorna se una coppia di nodi e' connessa da un arco mono-direzionale
-    (src -> dst)
+    Ritorna se una coppia di nodi e' connessa da un
+    arco mono-direzionale (src -> dst)
 
     @param src identificativo del nodo di partenza
     @param dst identificativo del nodo di destinazione
@@ -199,8 +162,7 @@ public:
 
     const int foundDst = indexOf(dst);
     if (foundDst == -1) {
-      throw node_not_found(
-          "Errore: il nodo di destinazione non e' stato trovato");
+      throw node_not_found("Errore: il nodo di destinazione non e' stato trovato");
     }
 
     const unsigned int srcNode = static_cast<unsigned int>(foundSrc);
@@ -216,16 +178,14 @@ public:
 
     @param id identificativo del nodo da aggiungere
 
-    @throw node_already_exists se un nodo con identificativo id e' gia' presente
-    nel grafo
+    @throw node_already_exists se un nodo con identificativo id e' gia' presente nel grafo
     @throw std::bad_alloc eccezione di allocazione
 
     @post _size == _size + 1
   */
   void addNode(const T &id) {
     if (existsNode(id)) {
-      throw node_already_exists(
-          "Errore: impossibile aggiungere un nodo gia' esistente");
+      throw node_already_exists("Errore: impossibile aggiungere un nodo gia' esistente");
     }
 
     unsigned int n_size = _size + 1;
@@ -253,11 +213,7 @@ public:
       throw;
     }
 
-    delete[] _ids;
-    delete[] _adj;
-    _ids = n_ids;
-    _adj = n_adj;
-    _size = n_size;
+    clearAndInit(n_ids, n_adj, n_size);
   }
 
   /**
@@ -266,8 +222,7 @@ public:
 
     @param id identificativo del nodo da rimuovere
 
-    @throw node_not_found se un nodo con identificativo id non e' presente nel
-    grafo
+    @throw node_not_found se un nodo con identificativo id non e' presente nel grafo
     @throw std::bad_alloc eccezione di allocazione
 
     @post _size == _size - 1
@@ -310,8 +265,7 @@ public:
           if (srcCol == nodeToRemove)
             continue;
 
-          n_adj[offset(dstRow, dstCol, n_size)] =
-              _adj[offset(srcRow, srcCol, _size)];
+          n_adj[offset(dstRow, dstCol, n_size)] = _adj[offset(srcRow, srcCol, _size)];
           ++dstCol;
         }
         ++dstRow;
@@ -322,11 +276,7 @@ public:
       throw;
     }
 
-    delete[] _ids;
-    delete[] _adj;
-    _ids = n_ids;
-    _adj = n_adj;
-    _size = n_size;
+    clearAndInit(n_ids, n_adj, n_size);
   }
 
   /**
@@ -359,8 +309,8 @@ public:
     @brief Iteratore costante di tipo forward sui nodi del grafo
 
     L'iteratore itera sull'insieme degli identificativi dei nodi
-    contenuti nel grafo. L'ordine con cui vengono ritornati riflette
-    l'ordine di memorizzazione interno e non e' significativo.
+    contenuti nel grafo. L'ordine con cui vengono ritornati non e'
+    significativo.
   */
   class const_iterator {
   public:
@@ -445,9 +395,7 @@ public:
 
       @return true se i due iteratori puntano allo stesso nodo
     */
-    bool operator==(const const_iterator &other) const {
-      return ptr == other.ptr;
-    }
+    bool operator==(const const_iterator &other) const { return ptr == other.ptr; }
 
     /**
       Operatore di diversita'.
@@ -456,9 +404,7 @@ public:
 
       @return true se i due iteratori puntano a nodi diversi
     */
-    bool operator!=(const const_iterator &other) const {
-      return ptr != other.ptr;
-    }
+    bool operator!=(const const_iterator &other) const { return ptr != other.ptr; }
 
   private:
     const T *ptr; ///< Puntatore al nodo corrente
@@ -492,13 +438,14 @@ public:
 
   // Amicizia concessa all'operatore di stream, che accede ai membri privati del
   // grafo per stampare nodi e matrice di adiacenza.
-  template <typename U>
-  friend std::ostream &operator<<(std::ostream &os, const graph<U> &g);
+  template <typename U, typename F>
+  friend std::ostream &operator<<(std::ostream &os, const graph<U, F> &g);
 
 private:
   T *_ids;            ///< Array degli identificativi dei nodi
   bool *_adj;         ///< Matrice di adiacenza linearizzata
   unsigned int _size; ///< Numero di nodi presenti nel grafo
+  E _equals;          ///< Funtore per l'uguaglianza tra identificativi dei nodi
 
   /**
     Funzione che restituisce l'indice di posizione di un nodo a partire dal suo
@@ -510,7 +457,7 @@ private:
   */
   int indexOf(const T &id) const {
     for (unsigned int i = 0; i < _size; ++i) {
-      if (_ids[i] == id) {
+      if (_equals(_ids[i], id)) {
         return i;
       }
     }
@@ -528,8 +475,7 @@ private:
 
     @return offset lineare della cella (i, j)
   */
-  static unsigned int offset(unsigned int i, unsigned int j,
-                             unsigned int width) {
+  static unsigned int offset(unsigned int i, unsigned int j, unsigned int width) {
     return i * width + j;
   }
 
@@ -551,9 +497,7 @@ private:
 
     @return riferimento costante alla cella (i, j)
   */
-  const bool &at(unsigned int i, unsigned int j) const {
-    return _adj[offset(i, j, _size)];
-  }
+  const bool &at(unsigned int i, unsigned int j) const { return _adj[offset(i, j, _size)]; }
 
   /**
     Modifica lo stato dell'arco mono-direzionale (src -> dst), impostandolo
@@ -581,8 +525,7 @@ private:
 
     const int foundDst = indexOf(dst);
     if (foundDst == -1) {
-      throw node_not_found(
-          "Errore: il nodo di destinazione non e' stato trovato");
+      throw node_not_found("Errore: il nodo di destinazione non e' stato trovato");
     }
 
     const unsigned int srcNode = static_cast<unsigned int>(foundSrc);
@@ -590,8 +533,7 @@ private:
 
     const bool currentValue = at(srcNode, dstNode);
     if (value && currentValue) {
-      throw edge_already_exists(
-          "Errore: impossibile aggiungere un arco gia' esistente");
+      throw edge_already_exists("Errore: impossibile aggiungere un arco gia' esistente");
     }
 
     if (!value && !currentValue) {
@@ -599,6 +541,38 @@ private:
     }
 
     at(srcNode, dstNode) = value;
+  }
+
+  /**
+    @brief Libera la struttura dati corrente
+
+    Rilascia la memoria attualmente posseduta dal grafo
+  */
+  void clear() {
+    delete[] _ids;
+    delete[] _adj;
+
+    _ids = nullptr;
+    _adj = nullptr;
+  }
+
+  /**
+    @brief Libera la struttura dati corrente e la reinizializza con i buffer
+    forniti
+
+    Rilascia la memoria attualmente posseduta dal grafo tramite clear() e ne
+    reinizializza lo stato facendola puntare ai nuovi buffer passati come
+    parametro, aggiornando anche il numero di nodi.
+
+    @param n_ids nuovo array degli identificativi dei nodi
+    @param n_adj nuova matrice di adiacenza linearizzata
+    @param n_size nuovo numero di nodi del grafo
+  */
+  void clearAndInit(T *n_ids, bool *n_adj, unsigned int n_size) {
+    clear();
+    _ids = n_ids;
+    _adj = n_adj;
+    _size = n_size;
   }
 };
 
@@ -613,8 +587,7 @@ private:
 
   @return lo stream di output
 */
-template <typename T>
-std::ostream &operator<<(std::ostream &os, const graph<T> &g) {
+template <typename T, typename E> std::ostream &operator<<(std::ostream &os, const graph<T, E> &g) {
   os << "Nodi:\n[";
   for (unsigned int i = 0; i < g._size; ++i) {
     if (i > 0) {
