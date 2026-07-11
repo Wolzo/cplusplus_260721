@@ -247,9 +247,8 @@ void test_removeEdge() {
   @brief Test completo nodi + archi
 
   Verifica che nodi e archi restino coerenti dopo sequenze alternate di
-  aggiunte e rimozioni. In particolare controlla che rimuovere un nodo
-  elimini tutti e soli i suoi archi (sia entranti che uscenti) e che gli
-  archi rimasti restino collegati alle coppie di nodi giuste.
+  aggiunte e rimozioni. Controlla che rimuovere un nodo elimini tutti e soli i suoi archi (sia
+  entranti che uscenti) e che gli archi rimasti restino collegati alle coppie di nodi giuste.
 */
 void test_completo_nodi_archi() {
   graph<int, equal_int> g;
@@ -277,7 +276,7 @@ void test_completo_nodi_archi() {
   assert(g.existsEdge(20, 40));
 
   // rimozione del nodo 20: devono sparire tutti gli archi di 20 (entranti,
-  // uscenti e self-loop), cioe' 5 archi. Restano solo (10,40) e (40,40).
+  // uscenti e self-loop). Restano solo (10,40) e (40,40).
   g.removeNode(20);
   assert(!g.existsNode(20));
   assert(g.numNodes() == 3);
@@ -456,13 +455,9 @@ void test_const_iterator() {
 /**
   @brief Test della classe graph sul tipo custom city
 
-  Verifica l'interfaccia pubblica su un tipo la cui identita' dipende da
+  Verifica il codice su un tipo custom la cui identita' dipende da
   un solo campo (il nome), tramite il funtore equal_city. Due citta' con
-  lo stesso nome ma popolazione diversa sono lo stesso nodo per il grafo,
-  a dimostrare che l'identita' dipende dal funtore e non dall'intero
-  oggetto. Sono verificati l'aggiunta e l'unicita' dei nodi, l'aggiunta e
-  la direzionalita' degli archi, il lancio delle eccezioni node_not_found
-  ed edge_not_found e l'iterazione sui nodi.
+  lo stesso nome ma popolazione diversa sono lo stesso nodo per il grafo.
 */
 void test_city_type() {
   graph<city, equal_city> g;
@@ -475,7 +470,7 @@ void test_city_type() {
   g.addNode(roma);
   g.addNode(napoli);
 
-  // l'oggetto city e' diverso ma corrisponde ad un nodo gia' esistente secondo
+  // l'oggetto city e' diverso (per popolazione) ma corrisponde ad un nodo gia' esistente secondo
   // la logica del funtore equal_city
   try {
     g.addNode(city("Milano", 2000000));
@@ -538,16 +533,10 @@ void test_city_type() {
 /**
   @brief Test della classe graph su tipo custom con uguaglianza divergente
 
-  Verifica il caso in cui l'uguaglianza propria del tipo file (operator==,
-  che confronta il path) e' diversa dal criterio di identita' usato dal
-  grafo (il funtore equal_file_by_content, che confronta il contenuto).
-  Il test mostra che il grafo usa il funtore e ignora operator==: due file
-  con path diversi ma stesso contenuto sono lo stesso nodo per il grafo pur
-  essendo diversi secondo operator==, mentre due file con lo stesso path ma
-  contenuto diverso sono nodi distinti pur essendo uguali secondo
-  operator==. Verifica inoltre l'unicita' dei nodi, la direzionalita' degli
-  archi, il lancio delle eccezioni node_not_found ed edge_not_found,
-  l'operatore -> dell'iteratore e l'iterazione sui nodi.
+  Verifica il caso in cui l'uguaglianza propria del tipo file (operator==, sul
+  path) e' diversa dal criterio di identita' usato dal grafo (il funtore
+  equal_file_by_content, sul contenuto). Due file con path diverso ma stesso contenuto sono lo
+  stesso nodo pur essendo diversi secondo operator==.
 */
 void test_file_type() {
   graph<file, equal_file_by_content> g;
@@ -564,12 +553,11 @@ void test_file_type() {
   // copia con path diverso ma stesso contenuto di a
   file a_copy = file("/backup/a.txt", "qwe");
 
-  // secondo operator== sono diversi: il path differisce
+  // secondo operator== sono diversi
   assert(!(a == a_copy));
 
   // ma per il grafo, che usa equal_file_by_content, hanno lo stesso
-  // contenuto e sono quindi lo stesso nodo: l'aggiunta deve lanciare
-  // node_already_exists
+  // contenuto e sono quindi lo stesso nodo
   try {
     g.addNode(a_copy);
     assert(false);
@@ -577,12 +565,10 @@ void test_file_type() {
   }
   assert(g.numNodes() == 3);
 
-  // caso simmetrico: stesso path di a ma contenuto diverso.
-  // Per operator== e' uguale ad a, ma per il grafo e' un nodo nuovo
-  // perche' il contenuto differisce, quindi l'aggiunta riesce
+  // stesso path di a ma contenuto diverso
   file a_modified = file("/home/a.txt", "qwe modificato");
-  assert(a == a_modified); // uguali per operator== (stesso path)
-  g.addNode(a_modified);   // ma contenuto diverso: nodo nuovo per il grafo
+  assert(a == a_modified);
+  g.addNode(a_modified);
   assert(g.numNodes() == 4);
 
   // rimozione di un file il cui contenuto non e' presente

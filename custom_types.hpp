@@ -1,15 +1,14 @@
 /**
   @file custom_types.hpp
 
-  @brief File header per definizioni di tipi custom
+  @brief Header con definizioni di tipi custom
 
-  File di dichiarazioni/definizioni di tipi custom. Servono a simulare in
-  main.cpp oggetti provenienti da librerie esterne, per testare a fondo il
-  comportamento della classe sui tipi custom.
+  Definisce alcuni tipi custom usati in main.cpp per simulare oggetti di
+  librerie esterne e testare il comportamento della classe su questi tipi.
 
-  @note Gli operatori operator<< liberi sono marcati inline perche' sono
-  funzioni definite in un header: senza inline, includere il file in piu'
-  file .cpp darebbe errore di definizione multipla in fase di link.
+  @note Gli operator<< liberi sono marcati inline perche' sono definiti in un
+  header. Senza inline, includere il file in piu' .cpp causerebbe un errore di
+  definizione multipla in fase di link.
 */
 
 #ifndef CUSTOM_TYPES_HPP
@@ -22,8 +21,7 @@
 
   Struct city che rappresenta una citta' identificata dal nome. E'
   possibile specificare come valore opzionale anche la popolazione.
-  L'uguaglianza tra due citta' e' definita sul solo nome. Si ipotizza che
-  gli archi siano collegamenti mono-direzionali da una citta' all'altra.
+  L'uguaglianza tra due citta' e' definita sul solo nome (tramite il funtore equal_city).
 */
 struct city {
   std::string name;
@@ -46,13 +44,11 @@ inline std::ostream &operator<<(std::ostream &os, const city &c) {
 /**
   @brief Struct file che rappresenta un file.
 
-  Struct file che rappresenta un file dotato di un percorso path e di un
-  contenuto content. L'operatore operator== confronta il solo path, e
-  stabilisce quindi l'identita' del file sul filesystem. Il criterio di
-  identita' usato dal grafo e' invece definito da fuori, dal funtore
-  equal_file_by_content, che confronta il contenuto: due file con path
-  diversi ma stesso contenuto sono lo stesso nodo per il grafo, mentre due file
-  con lo stesso path ma contenuto diverso sono nodi distinti.
+  Rappresenta un file con un percorso path e un contenuto content. L'operatore
+  operator== confronta solo il path, quindi definisce l'identita' del file sul
+  filesystem. Il grafo usa invece un funtore equal_file_by_content che confronta il contenuto: due
+  file con path diverso ma stesso contenuto sono lo stesso nodo per il grafo, mentre due file con
+  stesso path ma contenuto diverso sono nodi distinti.
 */
 struct file {
   std::string path;

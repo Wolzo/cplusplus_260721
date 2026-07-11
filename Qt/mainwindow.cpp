@@ -32,7 +32,7 @@ MainWindow::~MainWindow() { delete ui; }
 void MainWindow::setupCharts() {
   QChart *tripletChart = new QChart();
   tripletChart->setTitle(TRIPLET_TITLE);
-  tripletChart->legend()->hide();  // 64 fette: una legenda sarebbe illeggibile
+  tripletChart->legend()->hide();
   ui->tripletsChart->setChart(tripletChart);
   ui->tripletsChart->setRenderHint(QPainter::Antialiasing);
 
@@ -78,15 +78,6 @@ void MainWindow::loadImage() {
   updateRgbChart();
 }
 
-/*
- * Per le triplette si combinano una lista in ordine di lettura e una
- * hash colore->indice: la lista preserva l'ordine di prima apparizione,
- * la hash garantisce unicita' e conteggio senza scansioni lineari.
- *
- * Per i canali tre liste di 256 elementi indicizzate per intensita':
- * la dimensione fissa garantisce che tutte le intensita' 0-255 siano presenti,
- * comprese quelle a 0, senza pre-popolamento.
- */
 void MainWindow::analyzeImage() {
   if (_image.isNull())
     return;
@@ -110,6 +101,7 @@ void MainWindow::analyzeImage() {
       const int g = qGreen(p);
       const int b = qBlue(p);
 
+      // popolo le intensita' di ogni canale
       _channelR[r]++;
       _channelG[g]++;
       _channelB[b]++;
@@ -144,13 +136,12 @@ void MainWindow::displayImage() {
 }
 
 /*
- * Grafico a torta con una fetta per tripletta, colorata del colore reale della
+ * Grafico a torta con una fetta per tripletta, colorata col colore reale della
  * tripletta e con ampiezza proporzionale al numero di occorrenze normalizzato.
  *
- * La torta e' scelta perche' e' l'unico grafico di Qt Charts che consente di
- * colorare ogni elemento individualmente (QPieSlice::setColor), a differenza del
- * bar chart dove il colore vale per l'intero set. Le fette sono aggiunte
- * nell'ordine di lettura di _triplets .
+ * Si usa la torta perche' e' l'unico grafico di Qt Charts che permette di
+ * colorare ogni elemento singolarmente, mentre nel bar chart il colore vale per l'intero set.
+ * Le fette sono aggiunte nell'ordine di lettura di _triplets.
  */
 void MainWindow::updateTripletChart() {
   const int totalPixels = _image.width() * _image.height();
@@ -178,9 +169,7 @@ void MainWindow::updateTripletChart() {
 
 /*
  * Istogramma delle intensita' per canale, tre spezzate (R, G, B).
- * Ogni serie ha 256 punti (intensita' -> frequenza normalizzata). La spezzata
- * e' preferita alle barre perche' con 256 valori per canale una curva e' molto
- * piu' leggibile di 256 barrette sovrapposte.
+ * Ogni serie ha 256 punti (intensita' -> frequenza normalizzata)
  */
 void MainWindow::updateRgbChart() {
   const int totalPixels = _image.width() * _image.height();
@@ -245,11 +234,11 @@ void MainWindow::updateRgbChart() {
 }
 
 /*
- * Click su una fetta: la stacca (effetto exploded) e mostra i suoi valori RGB
- * e la percentuale nel titolo del grafico. Un secondo click sulla stessa fetta
- * la riattacca e ripristina il titolo. Solo una fetta e' selezionata per volta.
- * E' stata scelta questa soluzione perche' le label di alcune slice venivano
- * renderizzate fuori dall'area visibile disponibile.
+ * Quando si clicca una fetta, viene staccata (effetto exploded) e il
+ * titolo del grafico ne mostra i valori RGB e la percentuale. Un secondo click
+ * sulla stessa fetta la riattacca e ripristina il titolo. Solo una fetta e'
+ * selezionata per volta. Si e' scelta questa soluzione perche' le label di
+ * alcune fette venivano disegnate fuori dall'area visibile.
  */
 void MainWindow::onSliceClicked(QPieSlice *slice) {
   if (_selectedSlice && _selectedSlice != slice)

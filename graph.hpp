@@ -234,8 +234,7 @@ public:
     }
 
     // Eseguo il cast a unsigned per evitare warning nei confronti successivi
-    // con gli indici relativi a _size, che e' unsigned. Essendoci gia'
-    // assicurati che found e' non negativo, il cast e' safe.
+    // Essendoci gia' assicurati che found e' non negativo, il cast e' safe.
     const unsigned int nodeToRemove = static_cast<unsigned int>(found);
 
     unsigned int n_size = _size - 1;
@@ -502,12 +501,12 @@ private:
   /**
     Modifica lo stato dell'arco mono-direzionale (src -> dst), impostandolo
     al valore indicato. Metodo condiviso da addEdge e removeEdge: il
-    parametro value determina sia il valore da scrivere nella matrice sia
-    il tipo di errore in caso di operazione non valida.
+    parametro value determina il valore da scrivere nella matrice.
 
     Se value e' true (aggiunta) e l'arco esiste gia', lancia
     edge_already_exists. Se value e' false (rimozione) e l'arco non esiste,
     lancia edge_not_found.
+    Se o il nodo sorgente o il nodo destinazione non esistono, lancia node_not_foudn
 
     @param src identificativo del nodo di partenza
     @param dst identificativo del nodo di destinazione

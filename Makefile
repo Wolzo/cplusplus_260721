@@ -9,7 +9,7 @@ main.o: main.cpp custom_types.hpp graph.hpp edge_already_exists.hpp edge_not_fou
 
 .PHONY: clean
 clean:
-	rm *.o *.exe
+	rm -f *.o *.exe
 
 .PHONY: doc
 doc:

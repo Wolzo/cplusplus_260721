@@ -29,7 +29,6 @@ private slots:
   void onSliceClicked(QPieSlice *slice);
 
 private:
-  // Una tripletta RGB con il suo numero di occorrenze nell'immagine.
   struct Record {
     QRgb color;
     int count;
@@ -43,14 +42,17 @@ private:
 
   QPieSlice *_selectedSlice = nullptr;
 
-  // Triplette in ordine di lettura dei pixel, piu' una hash
-  // colore -> indice del record nella lista, che fa da lookup per
-  // unicita' e conteggio in tempo costante.
+  /*
+   * Triplette in ordine di lettura dei pixel, piu'
+   * una hash colore -> indice usata come lookup
+   */
   QList<Record> _triplets;
   QHash<QRgb, int> _lookup;
 
-  // Conteggi per intensita' di ogni canale.
-  // L'indice della lista e' l'intensita' (0-255), il valore e' il conteggio.
+  /*
+   * Conteggi per intensita' di ogni canale.
+   * L'indice della lista e' l'intensita' (0-255), il valore e' il conteggio.
+   */
   QList<int> _channelR;
   QList<int> _channelG;
   QList<int> _channelB;
